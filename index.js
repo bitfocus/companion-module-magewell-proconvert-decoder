@@ -17,9 +17,6 @@ function instance(system, id, config) {
 	return self;
 };
 
-instance.prototype.login_cookie = null;
-instance.prototype.ndi_sources = [];
-
 instance.prototype.STATUS_CODES = [
 	{ number: 0, status: 'MW_STATUS_SUCCESS' },
 	{ number: 1, status: 'MW_STATUS_PENDING' },
@@ -70,6 +67,8 @@ instance.prototype.STATUS_CODES = [
  */
 instance.prototype.updateConfig = function(config) {
 	var self = this;
+	clearInterval(self.polling);
+	self.login_cookie = null;
 	self.config = config;
 	self.init_login();
 };
@@ -79,15 +78,21 @@ instance.prototype.updateConfig = function(config) {
  */
 instance.prototype.init = function() {
 	var self = this;
-
-	self.status(self.STATE_OK);
+	self.login_cookie = null;
+	self.ndi_sources = [];
+	self.status('connexion',self.STATUS_WARNING);
 	self.init_login();
+	self.setVariableDefinitions( [
+		{
+			label: 'Current channel',
+			name: 'current_channel'
+		}
+	] )
 };
 
 instance.prototype.init_login = function() {
 	var self = this;
-
-	if ((self.config.username !== '') && (self.config.password !== '')) {
+	if ((self.config.username !== '') && (self.config.password !== '') && (self.config.host !== '')) {
 		//username and password not blank, so initiate login session
 		let username = self.config.username;
 		let password = self.config.password;
@@ -97,10 +102,19 @@ instance.prototype.init_login = function() {
 		let cmd = `/mwapi?method=login&id=${username}&pass=${password_md5}`;
 		self.getRest(cmd, {}).then(function(result) {
 			// Success
+			self.status(self.STATUS_OK);
 			self.login_cookie = result.response['headers']['set-cookie'];
-			self.get_ndi_sources();
+			if (self.config.polling) {
+				self.get_ndi_sources();
+				self.get_current_channel();
+				self.polling = setInterval(()=> {
+					self.get_ndi_sources();
+					self.get_current_channel();
+				}, 5000);
+			}
 		}).catch(function(message) {
 			self.login_cookie = null;
+			self.status(self.STATUS_ERROR);
 			self.log('error', self.config.host + ' : ' + message);
 		});
 	}
@@ -112,6 +126,7 @@ instance.prototype.get_ndi_sources = function() {
 	let cmd = `/mwapi?method=get-ndi-sources`;
 	self.getRest(cmd, {}).then(function(result) {
 		// Success
+		let old_ndi_sources = self.ndi_sources;
 		self.ndi_sources = [];
 		for (let i = 0; i < result.data.sources.length; i++) {
 			let ndiName = result.data.sources[i]['ndi-name'];
@@ -120,11 +135,32 @@ instance.prototype.get_ndi_sources = function() {
 			let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')'};
 			self.ndi_sources.push(ndiSourceObj);
 		}
-		self.actions(); //republish list of actions because of new NDI sources
+		if (JSON.stringify(old_ndi_sources) !== JSON.stringify(self.ndi_sources)) {
+			self.actions(); //republish list of actions because of new NDI sources
+		}
+
 	}).catch(function(message) {
+		clearInterval(self.polling);
 		self.login_cookie = null;
+		self.status(self.STATUS_ERROR);
 		self.log('error', self.config.host + ' : ' + message);
 	});
+
+};
+
+instance.prototype.get_current_channel = function() {
+	var self = this;
+
+	let cmd = `/mwapi?method=get-channel`;
+	self.getRest(cmd, {}).then(function(result) {
+		self.setVariable('current_channel', result.data.name)
+	}).catch(function(message) {
+		clearInterval(self.polling);
+		self.login_cookie = null;
+		self.status(self.STATUS_ERROR);
+		self.log('error', self.config.host + ' : ' + message);
+	});
+
 };
 
 instance.prototype.setChannel = function(ndi) {
@@ -132,7 +168,7 @@ instance.prototype.setChannel = function(ndi) {
 
 	let cmd = `/mwapi?method=set-channel&ndi-name=true&name=${ndi}`;
 	self.getRest(cmd, {}).then(function(result) {
-		// Success
+		self.setVariable('current_channel', ndi);
 		self.processStatusCode(result.data.status);
 	}).catch(function(message) {
 		self.login_cookie = null;
@@ -174,14 +210,24 @@ instance.prototype.config_fields = function() {
 			type: 'textinput',
 			id: 'username',
 			label: 'Username',
-			width: 4
+			width: 4,
+			default: 'Admin'
 		},
 		{
 			type: 'textinput',
 			id: 'password',
 			label: 'Password',
-			width: 4
-		}
+			width: 4,
+			default: 'Admin'
+		},
+		{
+			type: 'checkbox',
+			id: 'polling',
+			label: 'Auto-polling (every 5s)',
+			width: 4,
+			default: true
+		},
+
 	];
 
 };
@@ -192,7 +238,8 @@ instance.prototype.config_fields = function() {
  */
 instance.prototype.destroy = function() {
 	var self = this;
-	debug("destroy");
+	clearInterval(self.polling)
+	self.debug("destroy");
 };
 
 
