@@ -116,8 +116,13 @@ instance.prototype.init_login = function() {
 					self.get_current_channel();
 				}, 5000);
 			}
-			clearInterval(self.login_timer);
-			self.login_timer = setTimeout(init_login.bind(self), (30 * 60 * 1000)); //log back in every 30 minutes;
+			try {
+				clearInterval(self.login_timer);
+				self.login_timer = setTimeout(self.init_login.bind(self), (30 * 60 * 1000)); //log back in every 30 minutes;
+			}
+			catch(error) {
+				self.log('info', 'Unable to initialize login timer. Session will time out in 30 minutes.');
+			}
 		}).catch(function(message) {
 			self.login_cookie = null;
 			clearInterval(self.login_timer);
