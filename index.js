@@ -140,17 +140,18 @@ instance.prototype.get_ndi_sources = function() {
 		// Success
 		let old_ndi_sources = self.ndi_sources;
 		self.ndi_sources = [];
-		for (let i = 0; i < result.data.sources.length; i++) {
-			let ndiName = result.data.sources[i]['ndi-name'];
-			let ipAddr = result.data.sources[i]['ip-addr'];
-
-			let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')'};
-			self.ndi_sources.push(ndiSourceObj);
+		if (data.sources && data.sources.length) {
+			for (let i = 0; i < result.data.sources.length; i++) {
+				let ndiName = result.data.sources[i]['ndi-name'];
+				let ipAddr = result.data.sources[i]['ip-addr'];
+	
+				let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')'};
+				self.ndi_sources.push(ndiSourceObj);
+			}
+			if (JSON.stringify(old_ndi_sources) !== JSON.stringify(self.ndi_sources)) {
+				self.actions(); //republish list of actions because of new NDI sources
+			}
 		}
-		if (JSON.stringify(old_ndi_sources) !== JSON.stringify(self.ndi_sources)) {
-			self.actions(); //republish list of actions because of new NDI sources
-		}
-
 	}).catch(function(message) {
 		clearInterval(self.polling);
 		self.login_cookie = null;
@@ -165,7 +166,9 @@ instance.prototype.get_current_channel = function() {
 
 	let cmd = `/mwapi?method=get-channel`;
 	self.getRest(cmd, {}).then(function(result) {
-		self.setVariable('current_channel', result.data.name)
+		if (result.data && result.data.name) {
+			self.setVariable('current_channel', result.data.name)
+		}
 	}).catch(function(message) {
 		clearInterval(self.polling);
 		self.login_cookie = null;
@@ -181,7 +184,9 @@ instance.prototype.setChannel = function(ndi) {
 	let cmd = `/mwapi?method=set-channel&ndi-name=true&name=${ndi}`;
 	self.getRest(cmd, {}).then(function(result) {
 		self.setVariable('current_channel', ndi);
-		self.processStatusCode(result.data.status);
+		if (result.data && result.data.status) {
+			self.processStatusCode(result.data.status);
+		}
 	}).catch(function(message) {
 		self.login_cookie = null;
 		self.log('error', self.config.host + ' : ' + message);
