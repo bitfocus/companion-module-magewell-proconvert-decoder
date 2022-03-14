@@ -62,6 +62,9 @@ instance.prototype.STATUS_CODES = [
 	{ number: 41, status: 'MW_STATUS_CONSTRAINT_VIOLATION' }
 ];
 
+instance.prototype.polling = null;
+instance.prototype.login_timer = null;
+
 /**
  * Config updated by the user.
  */
@@ -107,13 +110,17 @@ instance.prototype.init_login = function() {
 			if (self.config.polling) {
 				self.get_ndi_sources();
 				self.get_current_channel();
+				clearInterval(self.polling);
 				self.polling = setInterval(()=> {
 					self.get_ndi_sources();
 					self.get_current_channel();
 				}, 5000);
 			}
+			clearInterval(self.login_timer);
+			self.login_timer = setTimeout(init_login.bind(self), (30 * 60 * 1000)); //log back in every 30 minutes;
 		}).catch(function(message) {
 			self.login_cookie = null;
+			clearInterval(self.login_timer);
 			self.status(self.STATUS_ERROR);
 			self.log('error', self.config.host + ' : ' + message);
 		});
@@ -238,7 +245,8 @@ instance.prototype.config_fields = function() {
  */
 instance.prototype.destroy = function() {
 	var self = this;
-	clearInterval(self.polling)
+	clearInterval(self.polling);
+	clearInterval(self.login_timer);
 	self.debug("destroy");
 };
 
