@@ -71,6 +71,7 @@ instance.prototype.login_timer = null;
 instance.prototype.updateConfig = function(config) {
 	var self = this;
 	clearInterval(self.polling);
+	clearInterval(self.login_timer);
 	self.login_cookie = null;
 	self.config = config;
 	self.init_login();
@@ -124,7 +125,6 @@ instance.prototype.init_login = function() {
 				self.log('info', 'Unable to initialize login timer. Session will time out in 30 minutes.');
 			}
 		}).catch(function(message) {
-			self.login_cookie = null;
 			clearInterval(self.login_timer);
 			self.status(self.STATUS_ERROR);
 			self.log('error', self.config.host + ' : ' + message);
@@ -154,7 +154,6 @@ instance.prototype.get_ndi_sources = function() {
 		}
 	}).catch(function(message) {
 		clearInterval(self.polling);
-		self.login_cookie = null;
 		self.status(self.STATUS_ERROR);
 		self.log('error', self.config.host + ' : ' + message);
 	});
@@ -171,7 +170,6 @@ instance.prototype.get_current_channel = function() {
 		}
 	}).catch(function(message) {
 		clearInterval(self.polling);
-		self.login_cookie = null;
 		self.status(self.STATUS_ERROR);
 		self.log('error', self.config.host + ' : ' + message);
 	});
@@ -188,7 +186,6 @@ instance.prototype.setChannel = function(ndi) {
 			self.processStatusCode(result.data.status);
 		}
 	}).catch(function(message) {
-		self.login_cookie = null;
 		self.log('error', self.config.host + ' : ' + message);
 	});
 };
@@ -347,7 +344,7 @@ instance.prototype.doRest = function(method, cmd, body) {
 
 		let headers = {};
 
-		if (self.login_cookie !== null) {
+		if (self.login_cookie) {
 			headers['Cookie'] = self.login_cookie;
 		}
 
