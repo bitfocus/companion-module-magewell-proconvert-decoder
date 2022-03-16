@@ -140,7 +140,7 @@ instance.prototype.get_ndi_sources = function() {
 		// Success
 		let old_ndi_sources = self.ndi_sources;
 		self.ndi_sources = [];
-		if (data.sources && data.sources.length) {
+		if (result.data && result.data.sources && result.data.sources.length) {
 			for (let i = 0; i < result.data.sources.length; i++) {
 				let ndiName = result.data.sources[i]['ndi-name'];
 				let ipAddr = result.data.sources[i]['ip-addr'];
