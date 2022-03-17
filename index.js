@@ -197,6 +197,10 @@ instance.prototype.processStatusCode = function(statusCode) {
 		let statusObj = self.STATUS_CODES.find( ({ number }) => number === statusCode);
 		self.log('error', self.config.host + ' : ' + statusObj.status);
 	}
+
+	if (statusCode == 37) { //not logged in
+		self.init_login();
+	}
 }
 
 /**
