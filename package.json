@@ -1,6 +1,6 @@
 {
 	"name": "magewell-proconvert-decoder",
-	"version": "1.0.6",
+	"version": "2.0.0",
 	"api_version": "1.0.0",
 	"keywords": [
 		"NDI"
@@ -8,8 +8,8 @@
 	"manufacturer": "Magewell",
 	"product": "Pro Convert Decoder",
 	"shortname": "proconvert-decoder",
-	"description": "Module to control Magewell Pro Convert Decoder",
-	"main": "index.js",
+	"description": "Module to control Magewell Pro Convert Decoders",
+	"main": "src/index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
