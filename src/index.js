@@ -154,6 +154,10 @@ instance.prototype.CHOICES_ALPHACHANNELDISPLAYMODES = [
 	{ id: 'alpha-blend-checkerboard', label: 'Alpha Blend Checkboard'},
 ];
 
+instance.prototype.CHOICES_NDI_SOURCES = [
+	{ id: -1, label: 'No NDI Sources loaded.'}
+]
+
 instance.prototype.login_timer = null;
 
 /**
@@ -182,6 +186,8 @@ instance.prototype.init = function() {
 	let self = this;
 
 	self.config = config;
+
+	self.status('Connecting',self.STATUS_WARNING);
 
 	self.init_login();
 
@@ -474,9 +480,11 @@ instance.prototype.get_ndi_sources = function() {
 	let cmd = `/mwapi?method=get-ndi-sources`;
 	rest.getRest.bind(this)(cmd, {}).then(function(result) {
 		// Success
-		let old_ndi_sources = self.CHOICES_NDI_SOURCES;
-		self.CHOICES_NDI_SOURCES = [];
 		if (result.data && result.data.sources && result.data.sources.length) {
+			let old_ndi_sources = self.CHOICES_NDI_SOURCES;
+			
+			self.CHOICES_NDI_SOURCES = [];
+
 			for (let i = 0; i < result.data.sources.length; i++) {
 				let ndiName = result.data.sources[i]['ndi-name'];
 				let ipAddr = result.data.sources[i]['ip-addr'];
@@ -484,6 +492,11 @@ instance.prototype.get_ndi_sources = function() {
 				let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')'};
 				self.CHOICES_NDI_SOURCES.push(ndiSourceObj);
 			}
+
+			if (self.CHOICES_NDI_SOURCES.length == 0) {
+				self.CHOICES_NDI_SOURCES.push({ id: -1, label: 'No NDI Sources loaded.'});
+			}
+
 			if (JSON.stringify(old_ndi_sources) !== JSON.stringify(self.CHOICES_NDI_SOURCES)) {
 				self.init_actions(); //republish list of actions because of new NDI sources
 				self.init_feedbacks(); //republish list of feedbacks because of new NDI sources
