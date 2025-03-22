@@ -1,14 +1,6 @@
 {
 	"name": "magewell-proconvert-decoder",
-	"version": "2.0.1",
-	"api_version": "1.0.0",
-	"keywords": [
-		"NDI"
-	],
-	"manufacturer": "Magewell",
-	"product": "Pro Convert Decoder",
-	"shortname": "proconvert-decoder",
-	"description": "Module to control Magewell Pro Convert Decoders",
+	"version": "3.0.0",
 	"main": "src/index.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
@@ -17,10 +9,21 @@
 		"type": "git",
 		"url": "git+https://github.com/bitfocus/companion-module-magewell-proconvert-decoder.git"
 	},
-	"author": "Joseph Adams <josephdadams@gmail.com>",
 	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-magewell-proconvert-decoder/issues"
+	"dependencies": {
+		"@companion-module/base": "~1.11.3"
 	},
-	"homepage": "https://github.com/bitfocus/companion-module-magewell-proconvert-decoder#readme"
+	"devDependencies": {
+		"@companion-module/tools": "^2.2.2"
+	},
+	"prettier": {
+		"arrowParens": "always",
+		"bracketSpacing": true,
+		"printWidth": 360,
+		"semi": false,
+		"singleQuote": true,
+		"useTabs": true,
+		"endOfLine": "lf",
+		"trailingComma": "es5"
+	}
 }

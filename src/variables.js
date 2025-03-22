@@ -1,169 +1,162 @@
-module.exports = {
-	// ##########################
-	// #### Define Variables ####
-	// ##########################
-	setVariables: function () {
-		let self = this;
-		let variables = [];
+// ##########################
+// #### Define Variables ####
+// ##########################
+export function setVariables(self) {
+	const variables = []
 
-		variables.push({ name: 'information', label: 'Information' });
+	variables.push({ variableId: 'information', name: 'Information' })
 
-		variables.push({ name: 'name', label: 'Device Name' });
-		variables.push({ name: 'model', label: 'Device Model' });
-		variables.push({ name: 'product_id', label: 'Product ID' });
-		variables.push({ name: 'auth_type', label: 'Auth Type' });
-		variables.push({ name: 'serial_number', label: 'Serial Number' });
-		variables.push({ name: 'hw_revision', label: 'HW Revision' });
-		variables.push({ name: 'fw_version', label: 'FW Version' });
-		variables.push({ name: 'uptodate', label: 'Up To Date' });
-		variables.push({ name: 'output_state', label: 'Output State' });
-		variables.push({ name: 'cpu_usage', label: 'CPU Usage' });
-		variables.push({ name: 'memory_usage', label: 'Memory Usage' });
-		variables.push({ name: 'core_temp', label: 'Core Temp' });
-		variables.push({ name: 'board_id', label: 'Board ID' });
-		variables.push({ name: 'up_time', label: 'UP Time' });
-		variables.push({ name: 'sd_size', label: 'SD Size' });
+	variables.push({ variableId: 'name', name: 'Device Name' })
+	variables.push({ variableId: 'model', name: 'Device Model' })
+	variables.push({ variableId: 'product_id', name: 'Product ID' })
+	variables.push({ variableId: 'auth_type', name: 'Auth Type' })
+	variables.push({ variableId: 'serial_number', name: 'Serial Number' })
+	variables.push({ variableId: 'hw_revision', name: 'HW Revision' })
+	variables.push({ variableId: 'fw_version', name: 'FW Version' })
+	variables.push({ variableId: 'uptodate', name: 'Up To Date' })
+	variables.push({ variableId: 'output_state', name: 'Output State' })
+	variables.push({ variableId: 'cpu_usage', name: 'CPU Usage' })
+	variables.push({ variableId: 'memory_usage', name: 'Memory Usage' })
+	variables.push({ variableId: 'core_temp', name: 'Core Temp' })
+	variables.push({ variableId: 'board_id', name: 'Board ID' })
+	variables.push({ variableId: 'up_time', name: 'UP Time' })
+	variables.push({ variableId: 'sd_size', name: 'SD Size' })
 
-		variables.push({ name: 'ndi_name', label: 'NDI Name' });
-		variables.push({ name: 'ndi_connected', label: 'NDI Connected' });
+	variables.push({ variableId: 'ndi_name', name: 'NDI Name' })
+	variables.push({ variableId: 'ndi_connected', name: 'NDI Connected' })
+
+	//Video Config - OSD
+	variables.push({ variableId: 'show_title', name: 'Show Source Name and Resolution' })
+	variables.push({ variableId: 'show_tally', name: 'Show Tally' })
+	variables.push({ variableId: 'show_vumeter', name: 'Show VU Meter' })
+	variables.push({ variableId: 'vumeter_mode', name: 'VU Meter Mode' })
+	variables.push({ variableId: 'show_center_cross', name: 'Show Center Cross' })
+	variables.push({ variableId: 'safe_area_mode', name: 'Safe Area Mode' })
+	variables.push({ variableId: 'ident_mode', name: 'Ident Mode' })
+	variables.push({ variableId: 'ident_text', name: 'Ident Text' })
+
+	//Video Config - Process
+	variables.push({ variableId: 'h_flip', name: 'Horizonal Flip' })
+	variables.push({ variableId: 'v_flip', name: 'Vertical Flip' })
+	variables.push({ variableId: 'deinterlace_mode', name: 'Deinterlace Mode' })
+	variables.push({ variableId: 'ar_convert_mode', name: 'Aspect Ratio Convert Mode' })
+	variables.push({ variableId: 'alpha_disp_mode', name: 'Alpha Channel Display Mode' })
+
+	//Video Config - Source
+	variables.push({ variableId: 'auto_color_fmt', name: 'Auto Color Format' })
+	variables.push({ variableId: 'color_fmt', name: 'Color Format' })
+	variables.push({ variableId: 'switch_mode', name: 'Switch Mode' })
+
+	//Video Mode
+	variables.push({ variableId: 'width', name: 'Width' })
+	variables.push({ variableId: 'height', name: 'Height' })
+	variables.push({ variableId: 'interlaced', name: 'Interlaced' })
+	variables.push({ variableId: 'field_rate', name: 'Field Rate' })
+	variables.push({ variableId: 'aspect_ratio', name: 'Aspect Ratio' })
+
+	//Audio Config
+	variables.push({ variableId: 'audio_gain', name: 'Audio Gain' })
+	variables.push({ variableId: 'audio_samplerate', name: 'Audio Sample Rate' })
+	variables.push({ variableId: 'audio_channels', name: 'Audio Channel Mode' })
+
+	//Channels and NDI Sources
+	variables.push({ variableId: 'current_channel', name: 'Current Channel' })
+	variables.push({ variableId: 'current_channel_ndi', name: 'Current Channel is NDI' })
+	variables.push({ variableId: 'ndi_enable_discovery', name: 'NDI Discovery Enabled' })
+	variables.push({ variableId: 'ndi_discovery_server', name: 'NDI Discovery Server' })
+	//variables.push({ variableId: 'ndi_source_name', name: 'NDI Source Name' });
+	variables.push({ variableId: 'ndi_group_name', name: 'NDI Group Name' })
+	variables.push({ variableId: 'ndi_low_bandwidth', name: 'NDI Low Bandwidth' })
+	variables.push({ variableId: 'ndi_buffer_duration', name: 'Buffer Duration' })
+
+	//Network
+	variables.push({ variableId: 'network_use_dhcp', name: 'Network Use DHCP' })
+	variables.push({ variableId: 'network_device_name', name: 'Network Device Name' })
+	variables.push({ variableId: 'network_state', name: 'Network State' })
+	variables.push({ variableId: 'network_mac', name: 'Network MAC Address' })
+	variables.push({ variableId: 'network_tx', name: 'Network TX Speed Kbps' })
+	variables.push({ variableId: 'network_rx', name: 'Network RX Speed Kbps' })
+
+	return variables
+	return variables
+}
+
+// #########################
+// #### Check Variables ####
+// #########################
+export function checkVariables(self) {
+	self.setVariableValues({
+		information: self.STATUS.information,
+
+		name: self.STATUS.summary.name,
+		model: self.STATUS.summary.model,
+		product_id: self.STATUS.summary.productId,
+		auth_type: self.STATUS.summary.authType,
+		serial_number: self.STATUS.summary.serialNumber,
+		hw_revision: self.STATUS.summary.hwRevision,
+		fw_version: self.STATUS.summary.fwVersion,
+		uptodate: self.STATUS.summary.uptodate.toString(),
+		output_state: self.STATUS.summary.outputState,
+		cpu_usage: self.STATUS.summary.cpuUsage,
+		memory_usage: self.STATUS.summary.memoryUsage,
+		core_temp: self.STATUS.summary.coreTemp,
+		board_id: self.STATUS.summary.boardId,
+		up_time: self.STATUS.summary.upTime,
+		sd_size: self.STATUS.summary.sdSize,
+
+		ndi_name: self.STATUS.summary.ndi.name,
+		ndi_connected: self.STATUS.summary.ndi.connected.toString(),
 
 		//Video Config - OSD
-		variables.push({ name: 'show_title', label: 'Show Source Name and Resolution' });
-		variables.push({ name: 'show_tally', label: 'Show Tally' });
-		variables.push({ name: 'show_vumeter', label: 'Show VU Meter' });
-		variables.push({ name: 'vumeter_mode', label: 'VU Meter Mode' });
-		variables.push({ name: 'show_center_cross', label: 'Show Center Cross' });
-		variables.push({ name: 'safe_area_mode', label: 'Safe Area Mode' });
-		variables.push({ name: 'ident_mode', label: 'Ident Mode' });
-		variables.push({ name: 'ident_text', label: 'Ident Text' });
+		show_title: self.STATUS.videoConfig.showTitle.toString(),
+		show_tally: self.STATUS.videoConfig.showTally.toString(),
+		show_vumeter: self.STATUS.videoConfig.showVUMeter.toString(),
+		vumeter_mode: self.STATUS.videoConfig.VUMeterMode,
+		show_center_cross: self.STATUS.videoConfig.showCenterCross.toString(),
+		safe_area_mode: self.STATUS.videoConfig.safeAreaMode,
+		ident_mode: self.STATUS.videoConfig.identMode,
+		ident_text: self.STATUS.videoConfig.identText,
 
 		//Video Config - Process
-		variables.push({ name: 'h_flip', label: 'Horizonal Flip' });
-		variables.push({ name: 'v_flip', label: 'Vertical Flip' });
-		variables.push({ name: 'deinterlace_mode', label: 'Deinterlace Mode' });
-		variables.push({ name: 'ar_convert_mode', label: 'Aspect Ratio Convert Mode' });
-		variables.push({ name: 'alpha_disp_mode', label: 'Alpha Channel Display Mode' });
+		h_flip: self.STATUS.videoConfig.hFlip.toString(),
+		v_flip: self.STATUS.videoConfig.vFlip.toString(),
+		deinterlace_mode: self.STATUS.videoConfig.deinterlaceMode,
+		ar_convert_mode: self.STATUS.videoConfig.arConvertMode,
+		alpha_disp_mode: self.STATUS.videoConfig.alphaDispMode,
 
 		//Video Config - Source
-		variables.push({ name: 'auto_color_fmt', label: 'Auto Color Format' });
-		variables.push({ name: 'color_fmt', label: 'Color Format' });
-		variables.push({ name: 'switch_mode', label: 'Switch Mode' });
+		auto_color_fmt: self.STATUS.videoConfig.autoColorFmt.toString(),
+		color_fmt: self.STATUS.videoConfig.colorFmt,
+		switch_mode: self.STATUS.videoConfig.switchMode,
 
 		//Video Mode
-		variables.push({ name: 'width', label: 'Width' });
-		variables.push({ name: 'height', label: 'Height' });
-		variables.push({ name: 'interlaced', label: 'Interlaced' });
-		variables.push({ name: 'field_rate', label: 'Field Rate' });
-		variables.push({ name: 'aspect_ratio', label: 'Aspect Ratio' });
+		width: self.STATUS.videoMode.width,
+		height: self.STATUS.videoMode.height,
+		interlaced: self.STATUS.videoMode.interlaced.toString(),
+		field_rate: self.STATUS.videoMode.fieldRate,
+		aspect_ratio: self.STATUS.videoMode.aspectRatio,
 
 		//Audio Config
-		variables.push({ name: 'audio_gain', label: 'Audio Gain' });
-		variables.push({ name: 'audio_samplerate', label: 'Audio Sample Rate' });
-		variables.push({ name: 'audio_channels', label: 'Audio Channel Mode' });
+		audio_gain: self.STATUS.audioConfig.gain,
+		audio_samplerate: self.STATUS.audioConfig.sampleRate,
+		audio_channels: self.STATUS.audioConfig.channels,
 
 		//Channels and NDI Sources
-		variables.push({ name: 'current_channel', label: 'Current Channel' });
-		variables.push({ name: 'current_channel_ndi', label: 'Current Channel is NDI' });
-		variables.push({ name: 'ndi_enable_discovery', label: 'NDI Discovery Enabled' });
-		variables.push({ name: 'ndi_discovery_server', label: 'NDI Discovery Server' });
-		//variables.push({ name: 'ndi_source_name', label: 'NDI Source Name' });
-		variables.push({ name: 'ndi_group_name', label: 'NDI Group Name' });
-		variables.push({ name: 'ndi_low_bandwidth', label: 'NDI Low Bandwidth' });
-		variables.push({ name: 'ndi_buffer_duration', label: 'Buffer Duration' });
+		current_channel: self.STATUS.channelConfig.currentChannel,
+		current_channel_ndi: self.STATUS.channelConfig.currentChannelNDI.toString(),
+		ndi_enable_discovery: self.STATUS.channelConfig.NDIEnableDiscovery.toString(),
+		ndi_discovery_server: self.STATUS.channelConfig.NDIDiscoveryServer,
+		//ndi_source_name: self.STATUS.channelConfig.NDISourceName,;
+		ndi_group_name: self.STATUS.channelConfig.NDIGroupName,
+		ndi_low_bandwidth: self.STATUS.channelConfig.NDILowBandwidth.toString(),
+		ndi_buffer_duration: self.STATUS.channelConfig.bufferDuration,
 
-		//Network
-		variables.push({ name: 'network_use_dhcp', label: 'Network Use DHCP' });
-		variables.push({ name: 'network_device_name', label: 'Network Device Name' });
-		variables.push({ name: 'network_state', label: 'Network State' });
-		variables.push({ name: 'network_mac', label: 'Network MAC Address' });
-		variables.push({ name: 'network_tx', label: 'Network TX Speed Kbps' });
-		variables.push({ name: 'network_rx', label: 'Network RX Speed Kbps' });
-
-		return variables
-	},
-
-	// #########################
-	// #### Check Variables ####
-	// #########################
-	checkVariables: function () {
-		let self = this;
-
-		try {
-			self.setVariable('information', self.STATUS.information);
-
-			self.setVariable('name', self.STATUS.summary.name);
-			self.setVariable('model', self.STATUS.summary.model);
-			self.setVariable('product_id',  self.STATUS.summary.productId);
-			self.setVariable('auth_type',  self.STATUS.summary.authType);
-			self.setVariable('serial_number',  self.STATUS.summary.serialNumber);
-			self.setVariable('hw_revision',  self.STATUS.summary.hwRevision);
-			self.setVariable('fw_version',  self.STATUS.summary.fwVersion);
-			self.setVariable('uptodate',  self.STATUS.summary.uptodate.toString());
-			self.setVariable('output_state',  self.STATUS.summary.outputState);
-			self.setVariable('cpu_usage',  self.STATUS.summary.cpuUsage);
-			self.setVariable('memory_usage', self.STATUS.summary.memoryUsage);
-			self.setVariable('core_temp',  self.STATUS.summary.coreTemp);
-			self.setVariable('board_id', self.STATUS.summary.boardId);
-			self.setVariable('up_time', self.STATUS.summary.upTime);
-			self.setVariable('sd_size',  self.STATUS.summary.sdSize);
-
-			self.setVariable('ndi_name',  self.STATUS.summary.ndi.name);
-			self.setVariable('ndi_connected',  self.STATUS.summary.ndi.connected.toString());
-
-			//Video Config - OSD
-			self.setVariable('show_title', self.STATUS.videoConfig.showTitle.toString());
-			self.setVariable('show_tally', self.STATUS.videoConfig.showTally.toString());
-			self.setVariable('show_vumeter', self.STATUS.videoConfig.showVUMeter.toString());
-			self.setVariable('vumeter_mode', self.STATUS.videoConfig.VUMeterMode);
-			self.setVariable('show_center_cross', self.STATUS.videoConfig.showCenterCross.toString());
-			self.setVariable('safe_area_mode', self.STATUS.videoConfig.safeAreaMode);
-			self.setVariable('ident_mode', self.STATUS.videoConfig.identMode);
-			self.setVariable('ident_text', self.STATUS.videoConfig.identText);
-
-			//Video Config - Process
-			self.setVariable('h_flip', self.STATUS.videoConfig.hFlip.toString());
-			self.setVariable('v_flip', self.STATUS.videoConfig.vFlip.toString());
-			self.setVariable('deinterlace_mode', self.STATUS.videoConfig.deinterlaceMode);
-			self.setVariable('ar_convert_mode', self.STATUS.videoConfig.arConvertMode);
-			self.setVariable('alpha_disp_mode', self.STATUS.videoConfig.alphaDispMode);
-
-			//Video Config - Source
-			self.setVariable('auto_color_fmt', self.STATUS.videoConfig.autoColorFmt.toString());
-			self.setVariable('color_fmt', self.STATUS.videoConfig.colorFmt);
-			self.setVariable('switch_mode', self.STATUS.videoConfig.switchMode);
-
-			//Video Mode
-			self.setVariable('width', self.STATUS.videoMode.width);
-			self.setVariable('height', self.STATUS.videoMode.height);
-			self.setVariable('interlaced', self.STATUS.videoMode.interlaced.toString());
-			self.setVariable('field_rate', self.STATUS.videoMode.fieldRate);
-			self.setVariable('aspect_ratio', self.STATUS.videoMode.aspectRatio);
-
-			//Audio Config
-			self.setVariable('audio_gain', self.STATUS.audioConfig.gain);
-			self.setVariable('audio_samplerate', self.STATUS.audioConfig.sampleRate);
-			self.setVariable('audio_channels', self.STATUS.audioConfig.channels);
-
-			//Channels and NDI Sources
-			self.setVariable('current_channel', self.STATUS.channelConfig.currentChannel);
-			self.setVariable('current_channel_ndi', self.STATUS.channelConfig.currentChannelNDI.toString());
-			self.setVariable('ndi_enable_discovery', self.STATUS.channelConfig.NDIEnableDiscovery.toString());
-			self.setVariable('ndi_discovery_server', self.STATUS.channelConfig.NDIDiscoveryServer);
-			//self.setVariable('ndi_source_name', self.STATUS.channelConfig.NDISourceName);
-			self.setVariable('ndi_group_name', self.STATUS.channelConfig.NDIGroupName);
-			self.setVariable('ndi_low_bandwidth', self.STATUS.channelConfig.NDILowBandwidth.toString());
-			self.setVariable('ndi_buffer_duration', self.STATUS.channelConfig.bufferDuration);
-
-			//Network Config
-			self.setVariable('network_use_dhcp', self.STATUS.networkConfig.useDHCP);
-			self.setVariable('network_device_name', self.STATUS.networkConfig.deviceName);
-			self.setVariable('network_state', self.STATUS.networkConfig.state);
-			self.setVariable('network_mac', self.STATUS.networkConfig.mac);
-			self.setVariable('network_tx', self.STATUS.networkConfig.tx);
-			self.setVariable('network_rx', self.STATUS.networkConfig.rx);
-		}
-		catch(error) {
-			self.log('error', 'Error setting Variables from Device: ' + String(error));
-		}
-	}
+		//Network Config
+		network_use_dhcp: self.STATUS.networkConfig.useDHCP,
+		network_device_name: self.STATUS.networkConfig.deviceName,
+		network_state: self.STATUS.networkConfig.state,
+		network_mac: self.STATUS.networkConfig.mac,
+		network_tx: self.STATUS.networkConfig.tx,
+		network_rx: self.STATUS.networkConfig.rx,
+	})
 }
