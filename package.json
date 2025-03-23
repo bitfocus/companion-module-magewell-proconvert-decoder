@@ -2,6 +2,7 @@
 	"name": "magewell-proconvert-decoder",
 	"version": "3.0.0",
 	"main": "src/index.js",
+	"type": "module",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
@@ -11,7 +12,8 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.11.3"
+		"@companion-module/base": "~1.11.3",
+		"got": "^13.0.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.2.2"

@@ -78,7 +78,6 @@ export function setVariables(self) {
 	variables.push({ variableId: 'network_rx', name: 'Network RX Speed Kbps' })
 
 	return variables
-	return variables
 }
 
 // #########################
@@ -95,7 +94,7 @@ export function checkVariables(self) {
 		serial_number: self.STATUS.summary.serialNumber,
 		hw_revision: self.STATUS.summary.hwRevision,
 		fw_version: self.STATUS.summary.fwVersion,
-		uptodate: self.STATUS.summary.uptodate.toString(),
+		uptodate: self.STATUS.summary.uptodate,
 		output_state: self.STATUS.summary.outputState,
 		cpu_usage: self.STATUS.summary.cpuUsage,
 		memory_usage: self.STATUS.summary.memoryUsage,
@@ -105,34 +104,34 @@ export function checkVariables(self) {
 		sd_size: self.STATUS.summary.sdSize,
 
 		ndi_name: self.STATUS.summary.ndi.name,
-		ndi_connected: self.STATUS.summary.ndi.connected.toString(),
+		ndi_connected: self.STATUS.summary.ndi.connected,
 
 		//Video Config - OSD
-		show_title: self.STATUS.videoConfig.showTitle.toString(),
-		show_tally: self.STATUS.videoConfig.showTally.toString(),
-		show_vumeter: self.STATUS.videoConfig.showVUMeter.toString(),
+		show_title: self.STATUS.videoConfig.showTitle,
+		show_tally: self.STATUS.videoConfig.showTally,
+		show_vumeter: self.STATUS.videoConfig.showVUMeter,
 		vumeter_mode: self.STATUS.videoConfig.VUMeterMode,
-		show_center_cross: self.STATUS.videoConfig.showCenterCross.toString(),
+		show_center_cross: self.STATUS.videoConfig.showCenterCross,
 		safe_area_mode: self.STATUS.videoConfig.safeAreaMode,
 		ident_mode: self.STATUS.videoConfig.identMode,
 		ident_text: self.STATUS.videoConfig.identText,
 
 		//Video Config - Process
-		h_flip: self.STATUS.videoConfig.hFlip.toString(),
-		v_flip: self.STATUS.videoConfig.vFlip.toString(),
+		h_flip: self.STATUS.videoConfig.hFlip,
+		v_flip: self.STATUS.videoConfig.vFlip,
 		deinterlace_mode: self.STATUS.videoConfig.deinterlaceMode,
 		ar_convert_mode: self.STATUS.videoConfig.arConvertMode,
 		alpha_disp_mode: self.STATUS.videoConfig.alphaDispMode,
 
 		//Video Config - Source
-		auto_color_fmt: self.STATUS.videoConfig.autoColorFmt.toString(),
+		auto_color_fmt: self.STATUS.videoConfig.autoColorFmt,
 		color_fmt: self.STATUS.videoConfig.colorFmt,
 		switch_mode: self.STATUS.videoConfig.switchMode,
 
 		//Video Mode
 		width: self.STATUS.videoMode.width,
 		height: self.STATUS.videoMode.height,
-		interlaced: self.STATUS.videoMode.interlaced.toString(),
+		interlaced: self.STATUS.videoMode.interlaced,
 		field_rate: self.STATUS.videoMode.fieldRate,
 		aspect_ratio: self.STATUS.videoMode.aspectRatio,
 
@@ -143,12 +142,12 @@ export function checkVariables(self) {
 
 		//Channels and NDI Sources
 		current_channel: self.STATUS.channelConfig.currentChannel,
-		current_channel_ndi: self.STATUS.channelConfig.currentChannelNDI.toString(),
-		ndi_enable_discovery: self.STATUS.channelConfig.NDIEnableDiscovery.toString(),
+		current_channel_ndi: self.STATUS.channelConfig.currentChannelNDI,
+		ndi_enable_discovery: self.STATUS.channelConfig.NDIEnableDiscovery,
 		ndi_discovery_server: self.STATUS.channelConfig.NDIDiscoveryServer,
 		//ndi_source_name: self.STATUS.channelConfig.NDISourceName,;
 		ndi_group_name: self.STATUS.channelConfig.NDIGroupName,
-		ndi_low_bandwidth: self.STATUS.channelConfig.NDILowBandwidth.toString(),
+		ndi_low_bandwidth: self.STATUS.channelConfig.NDILowBandwidth,
 		ndi_buffer_duration: self.STATUS.channelConfig.bufferDuration,
 
 		//Network Config

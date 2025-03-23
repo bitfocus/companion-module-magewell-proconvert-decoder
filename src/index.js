@@ -3,12 +3,8 @@ import { setActions } from './actions.js'
 import { setFeedbacks } from './feedbacks.js'
 import { setPresets } from './presets.js'
 import { setVariables, checkVariables } from './variables.js'
+import got from 'got'
 import crypto from 'crypto'
-
-var rest = require('./rest.js')
-
-var debug
-var log
 
 // ########################
 // #### Instance setup ####
@@ -62,8 +58,6 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 		{ number: 40, status: 'MW_STATUS_VERIFY_FAILED' },
 		{ number: 41, status: 'MW_STATUS_CONSTRAINT_VIOLATION' },
 	]
-
-	login_cookie = null
 
 	POLLING_INTERVAL = null
 
@@ -153,9 +147,22 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 
 	login_timer = null
 
-	// Initializes the module.
-	async init() {
-		this.updateStatus(InstanceStatus.Connecting)
+	got_options = {
+		responseType: 'json',
+		timeout: { request: 1000 },
+		headers: {
+			cookie: undefined,
+		},
+	}
+
+	// Initalize module
+	async init(config) {
+		this.config = config
+		this.poll = false
+		this.updateStatus(InstanceStatus.Disconnected, 'Initializing')
+
+		this.got_options.prefixUrl = `http://` + this.config.host
+		this.got_options.timeout.request = this.config.pollingrate
 
 		this.init_login()
 
@@ -164,71 +171,63 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 		this.init_variables()
 		this.init_presets()
 
-		this.checkFeedbacks()
 		this.checkVariables()
 	}
 
 	// Update module after a config change
 	async configUpdated(config) {
 		this.config = config
+		this.poll = false
+		this.updateStatus(InstanceStatus.Disconnected, 'Config changed')
 
-		this.updateStatus(InstanceStatus.Connecting)
+		this.got_options.prefixUrl = `http://` + this.config.host
+		this.got_options.timeout.request = this.config.pollingrate
 
 		this.init_login()
-
-		this.init_actions()
-		this.init_feedbacks()
-		this.init_variables()
-		this.init_presets()
-
-		this.checkFeedbacks()
-		this.checkVariables()
 	}
 
-	init_login() {
+	async init_login() {
 		if (this.config.host) {
-			this.login_cookie = null
+			this.got_options.headers['cookie'] = undefined
 
-			let username = this.config.username
-			let password = this.config.password
-
-			let password_md5 = crypto.createHash('md5').update(password).digest('hex')
-
-			let cmd = `/mwapi?method=login&id=${username}&pass=${password_md5}`
+			const cmd = `mwapi?method=login&id=${this.config.username}&pass=${crypto.createHash('md5').update(this.config.password).digest('hex')}`
 			if (this.config.verbose) {
 				this.log('debug', 'Sending: GET ' + cmd)
 			}
-			rest.getRest
-				.bind(this)(cmd, {})
-				.then(function (result) {
-					if (result.data.status == 0) {
-						//login successful
-						this.updateStatus(InstanceStatus.Ok)
 
-						this.login_cookie = result.response['headers']['set-cookie']
+			this.updateStatus(InstanceStatus.Connecting)
 
-						this.get_state()
+			try {
+				const response = await got.get(cmd, this.got_options)
+				if (response.body.status == 0) {
+					//login successful
+					this.updateStatus(InstanceStatus.Ok)
 
-						if (this.config.polling) {
-							this.init_polling()
-						}
+					this.got_options.headers['cookie'] = response.headers['set-cookie']
 
-						try {
-							clearInterval(this.login_timer)
-							this.login_timer = setTimeout(this.init_login.bind(self), 30 * 60 * 1000) //log back in every 30 minutes;
-						} catch (error) {
-							this.log('info', 'Unable to initialize login timer. Session will time out in 30 minutes.')
-						}
+					this.get_state()
+
+					if (this.config.polling) {
+						this.init_polling()
 					} else {
-						this.handleErrorNumber(result.data.status)
+						this.get_state(true)
 					}
-				})
-				.catch(function (message) {
-					clearInterval(this.login_timer)
-					this.login_cookie = null
-					this.log('error', 'Error while logging in.')
-					this.handleError(message)
-				})
+
+					//try {
+					//	clearInterval(this.login_timer)
+					//	this.login_timer = setTimeout(this.init_login, 30 * 60 * 1000) //log back in every 30 minutes;
+					//} catch (error) {
+					//	this.log('info', 'Unable to initialize login timer. Session will time out in 30 minutes.' + error)
+					//}
+				} else {
+					this.handleErrorNumber(response.body.status)
+				}
+			} catch (err) {
+				//clearInterval(this.login_timer)
+				this.got_options.headers['cookie'] = undefined
+				this.log('error', 'Error while logging in.')
+				this.handleError(err)
+			}
 		}
 	}
 
@@ -237,42 +236,42 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 			if (this.config.verbose) {
 				this.log('debug', 'Starting Polling: Every ' + this.config.pollingrate + ' ms')
 			}
-			this.POLLING_INTERVAL = setInterval(this.get_state.bind(this), parseInt(this.config.pollingrate))
+			this.poll = true
+			//this.POLLING_INTERVAL = setInterval(this.get_state, parseInt(this.config.pollingrate))
+			this.get_state()
 		} else {
-			this.stop_polling()
+			this.poll = false
 		}
 	}
 
-	stop_polling() {
-		if (this.config.polling && this.POLLING_INTERVAL) {
-			if (this.config.verbose) {
-				this.log('debug', 'Stopping Polling.')
-			}
-		}
-
-		clearInterval(this.POLLING_INTERVAL)
-		this.POLLING_INTERVAL = null
+	sleep(ms) {
+		return new Promise((resolve) => setTimeout(resolve, ms))
 	}
 
-	get_state() {
-		this.get_summary_info()
+	async get_state(once = false) {
+		if (this.poll || once) await this.get_summary_info()
 
 		//Video
-		this.get_video_config()
-		this.get_video_mode()
+		if (this.poll || once) await this.get_video_config()
+		if (this.poll || once) await this.get_video_mode()
 
 		//Audio
-		this.get_audio_config()
+		if (this.poll || once) await this.get_audio_config()
 
 		//Channels and NDI Sources
-		this.list_channels()
-		this.get_ndi_sources()
-		this.get_channel() //gets the currently selected source channel for decoding
-		this.get_ndi_config()
-		this.get_playback_config()
+		if (this.poll || once) await this.list_channels()
+		if (this.poll || once) await this.get_ndi_sources()
+		if (this.poll || once) await this.get_channel() //gets the currently selected source channel for decoding
+		if (this.poll || once) await this.get_ndi_config()
+		if (this.poll || once) await this.get_playback_config()
 
 		//Network
-		this.get_eth_status()
+		if (this.poll || once) await this.get_eth_status()
+
+		if (!once && this.poll) await this.sleep(this.config.pollingrate)
+		else return
+
+		this.get_state() // loop
 	}
 
 	handleErrorNumber(number) {
@@ -305,294 +304,273 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 			this.updateStatus(InstanceStatus.ConnectionFailure, String(err))
 			this.STATUS.information = 'Error - See Log'
 			this.checkVariables()
-			this.stop_polling()
+			this.poll = false
 		}
 	}
 
-	get_summary_info() {
-		let cmd = `/mwapi?method=get-summary-info`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					this.STATUS.summary.name = result.data.device['name']
-					this.STATUS.summary.model = result.data.device['model']
-					this.STATUS.summary.productId = result.data.device['product-id']
-					this.STATUS.summary.authType = result.data.device['auth-type']
-					this.STATUS.summary.serialNumber = result.data.device['serial-no']
-					this.STATUS.summary.hwRevision = result.data.device['hw-revision']
-					this.STATUS.summary.fwVersion = result.data.device['fw-version']
-					this.STATUS.summary.uptodate = result.data.device['up-to-date']
-					this.STATUS.summary.outputState = result.data.device['output-state']
-					this.STATUS.summary.cpuUsage = result.data.device['cpu-usage']
-					this.STATUS.summary.memoryUsage = result.data.device['memory-usage']
-					this.STATUS.summary.coreTemp = result.data.device['core-temp']
-					this.STATUS.summary.boardId = result.data.device['board-id']
-					this.STATUS.summary.upTime = result.data.device['up-time']
-					this.STATUS.summary.sdSize = result.data.device['sd-size']
+	async get_summary_info() {
+		const cmd = `mwapi?method=get-summary-info`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				this.log('info', 'Response: ' + JSON.stringify(response.body))
+				this.STATUS.summary.name = response.body.device['name']
+				this.STATUS.summary.model = response.body.device['model']
+				this.STATUS.summary.productId = response.body.device['product-id']
+				this.STATUS.summary.authType = response.body.device['auth-type']
+				this.STATUS.summary.serialNumber = response.body.device['serial-no']
+				this.STATUS.summary.hwRevision = response.body.device['hw-revision']
+				this.STATUS.summary.fwVersion = response.body.device['fw-version']
+				this.STATUS.summary.uptodate = response.body.device['up-to-date']
+				this.STATUS.summary.outputState = response.body.device['output-state']
+				this.STATUS.summary.cpuUsage = response.body.device['cpu-usage']
+				this.STATUS.summary.memoryUsage = response.body.device['memory-usage']
+				this.STATUS.summary.coreTemp = response.body.device['core-temp']
+				this.STATUS.summary.boardId = response.body.device['board-id']
+				this.STATUS.summary.upTime = response.body.device['up-time']
+				this.STATUS.summary.sdSize = response.body.device['sd-size']
 
-					this.STATUS.summary.ndi.name = result.data.ndi['name']
-					this.STATUS.summary.ndi.connected = result.data.ndi['connected']
-
-					this.checkVariables()
-					this.checkFeedbacks()
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_video_config() {
-		let cmd = `/mwapi?method=get-video-config`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					//OSD
-					this.STATUS.videoConfig.showTitle = result.data['show-title']
-					this.STATUS.videoConfig.showTally = result.data['show-tally']
-					this.STATUS.videoConfig.showVUMeter = result.data['show-vu-meter']
-					this.STATUS.videoConfig.VUMeterMode = result.data['vu-meter-mode']
-					this.STATUS.videoConfig.showCenterCross = result.data['show-center-cross']
-					this.STATUS.videoConfig.safeAreaMode = result.data['safe-area-mode']
-					this.STATUS.videoConfig.identMode = result.data['ident-mode']
-					this.STATUS.videoConfig.identText = result.data['ident-text']
-
-					//Process
-					this.STATUS.videoConfig.hFlip = result.data['h-flip']
-					this.STATUS.videoConfig.vFlip = result.data['v-flip']
-					this.STATUS.videoConfig.deinterlaceMode = result.data['deinterlace-mode']
-					this.STATUS.videoConfig.arConvertMode = result.data['ar-convert-mode']
-					this.STATUS.videoConfig.alphaDispMode = result.data['alpha-disp-mode']
-
-					//Source
-					this.STATUS.videoConfig.autoColorFmt = result.data['in-auto-color-fmt']
-					this.STATUS.videoConfig.colorFmt = result.data['in-color-fmt']
-					this.STATUS.videoConfig.switchMode = result.data['switch-mode']
-
-					this.checkVariables()
-					this.checkFeedbacks()
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_video_mode() {
-		let cmd = `/mwapi?method=get-video-mode`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					//Video Mode
-					this.STATUS.videoMode.width = result.data['width']
-					this.STATUS.videoMode.height = result.data['height']
-					this.STATUS.videoMode.interlaced = result.data['interlaced']
-					this.STATUS.videoMode.fieldRate = result.data['field-rate']
-					this.STATUS.videoMode.aspectRatio = result.data['aspect-ratio']
-
-					this.checkVariables()
-					this.checkFeedbacks()
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_audio_config() {
-		let cmd = `/mwapi?method=get-audio-config`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					this.STATUS.audioConfig.gain = result.data['gain']
-					this.STATUS.audioConfig.sampleRate = result.data['sample-rate']
-					this.STATUS.audioConfig.channels = result.data['channels']
-
-					this.checkVariables()
-					this.checkFeedbacks()
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	list_channels() {
-		let cmd = `/mwapi?method=list-channels`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				let old_channels = this.CHOICES_CHANNELS
-				this.CHOICES_CHANNELS = []
-				if (result.data && result.data.channels && result.data.channels.length) {
-					for (let i = 0; i < result.data.channels.length; i++) {
-						let channelName = result.data.channels[i]['name']
-						let channelObj = { id: channelName, label: channelName }
-						this.CHOICES_CHANNELS.push(channelObj)
-					}
-					if (JSON.stringify(old_channels) !== JSON.stringify(this.CHOICES_CHANNELS)) {
-						this.init_actions() //republish list of actions because of new channels
-						this.init_feedbacks() //republish list of feedbacks because of new NDI sources
-					}
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_ndi_sources() {
-		let cmd = `/mwapi?method=get-ndi-sources`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data && result.data.sources && result.data.sources.length) {
-					let old_ndi_sources = this.CHOICES_NDI_SOURCES
-
-					this.CHOICES_NDI_SOURCES = []
-
-					for (let i = 0; i < result.data.sources.length; i++) {
-						let ndiName = result.data.sources[i]['ndi-name']
-						let ipAddr = result.data.sources[i]['ip-addr']
-
-						let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')' }
-						this.CHOICES_NDI_SOURCES.push(ndiSourceObj)
-					}
-
-					if (this.CHOICES_NDI_SOURCES.length == 0) {
-						this.CHOICES_NDI_SOURCES.push({ id: -1, label: 'No NDI Sources loaded.' })
-					}
-
-					if (JSON.stringify(old_ndi_sources) !== JSON.stringify(this.CHOICES_NDI_SOURCES)) {
-						this.init_actions() //republish list of actions because of new NDI sources
-						this.init_feedbacks() //republish list of feedbacks because of new NDI sources
-					}
-				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_channel() {
-		let cmd = `/mwapi?method=get-channel`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				if (result.data && result.data.name) {
-					this.STATUS.channelConfig.currentChannel = result.data.name
-					if (result.data['ndi-name'] == true) {
-						this.STATUS.channelConfig.currentChannelNDI = true
-					} else {
-						this.STATUS.channelConfig.currentChannelNDI = false
-					}
-				}
+				this.STATUS.summary.ndi.name = response.body.ndi['name']
+				this.STATUS.summary.ndi.connected = response.body.ndi['connected']
 
 				this.checkVariables()
 				this.checkFeedbacks()
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
 	}
 
-	get_ndi_config() {
-		let cmd = `/mwapi?method=get-ndi-config`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					this.STATUS.channelConfig.NDIEnableDiscovery = result.data['enable-discovery']
-					this.STATUS.channelConfig.NDIDiscoveryServer = result.data['discovery-server']
-					this.STATUS.channelConfig.NDISourceName = result.data['source-name']
-					this.STATUS.channelConfig.NDIGroupName = result.data['group-name']
-					this.STATUS.channelConfig.NDILowBandwidth = result.data['low-bandwidth']
+	async get_video_config() {
+		const cmd = `mwapi?method=get-video-config`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				//OSD
+				this.STATUS.videoConfig.showTitle = response.body['show-title']
+				this.STATUS.videoConfig.showTally = response.body['show-tally']
+				this.STATUS.videoConfig.showVUMeter = response.body['show-vu-meter']
+				this.STATUS.videoConfig.VUMeterMode = response.body['vu-meter-mode']
+				this.STATUS.videoConfig.showCenterCross = response.body['show-center-cross']
+				this.STATUS.videoConfig.safeAreaMode = response.body['safe-area-mode']
+				this.STATUS.videoConfig.identMode = response.body['ident-mode']
+				this.STATUS.videoConfig.identText = response.body['ident-text']
 
-					this.checkVariables()
-					this.checkFeedbacks()
+				//Process
+				this.STATUS.videoConfig.hFlip = response.body['h-flip']
+				this.STATUS.videoConfig.vFlip = response.body['v-flip']
+				this.STATUS.videoConfig.deinterlaceMode = response.body['deinterlace-mode']
+				this.STATUS.videoConfig.arConvertMode = response.body['ar-convert-mode']
+				this.STATUS.videoConfig.alphaDispMode = response.body['alpha-disp-mode']
+
+				//Source
+				this.STATUS.videoConfig.autoColorFmt = response.body['in-auto-color-fmt']
+				this.STATUS.videoConfig.colorFmt = response.body['in-color-fmt']
+				this.STATUS.videoConfig.switchMode = response.body['switch-mode']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async get_video_mode() {
+		const cmd = `mwapi?method=get-video-mode`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				//Video Mode
+				this.STATUS.videoMode.width = response.body['width']
+				this.STATUS.videoMode.height = response.body['height']
+				this.STATUS.videoMode.interlaced = response.body['interlaced']
+				this.STATUS.videoMode.fieldRate = response.body['field-rate']
+				this.STATUS.videoMode.aspectRatio = response.body['aspect-ratio']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async get_audio_config() {
+		const cmd = `mwapi?method=get-audio-config`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				this.STATUS.audioConfig.gain = response.body['gain']
+				this.STATUS.audioConfig.sampleRate = response.body['sample-rate']
+				this.STATUS.audioConfig.channels = response.body['channels']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async list_channels() {
+		const cmd = `mwapi?method=list-channels`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			let old_channels = this.CHOICES_CHANNELS
+			this.CHOICES_CHANNELS = []
+			if (response.body && response.body.channels && response.body.channels.length) {
+				for (let i = 0; i < response.body.channels.length; i++) {
+					let channelName = response.body.channels[i]['name']
+					let channelObj = { id: channelName, label: channelName }
+					this.CHOICES_CHANNELS.push(channelObj)
 				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
-	}
-
-	get_playback_config() {
-		let cmd = `/mwapi?method=get-playback-config`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					this.STATUS.channelConfig.bufferDuration = result.data['buffer-duration']
-
-					this.checkVariables()
-					this.checkFeedbacks()
+				if (JSON.stringify(old_channels) !== JSON.stringify(this.CHOICES_CHANNELS)) {
+					this.init_actions() //republish list of actions because of new channels
+					this.init_feedbacks() //republish list of feedbacks because of new NDI sources
 				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
 	}
 
-	get_eth_status() {
-		let cmd = `/mwapi?method=get-eth-status`
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				// Success
-				if (result.data) {
-					this.STATUS.networkConfig.useDHCP = result.data['use-dhcp']
-					this.STATUS.networkConfig.deviceName = result.data['device-name']
-					this.STATUS.networkConfig.state = result.data['state']
-					this.STATUS.networkConfig.mac = result.data['mac-addr']
-					this.STATUS.networkConfig.tx = result.data['tx-speed-kbps']
-					this.STATUS.networkConfig.rx = result.data['rx-speed-kbps']
+	async get_ndi_sources() {
+		const cmd = `mwapi?method=get-ndi-sources`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body && response.body.sources && response.body.sources.length) {
+				let old_ndi_sources = this.CHOICES_NDI_SOURCES
 
-					this.checkVariables()
-					this.checkFeedbacks()
+				this.CHOICES_NDI_SOURCES = []
+
+				for (let i = 0; i < response.body.sources.length; i++) {
+					let ndiName = response.body.sources[i]['ndi-name']
+					let ipAddr = response.body.sources[i]['ip-addr']
+
+					let ndiSourceObj = { id: ndiName, label: ndiName + ' (' + ipAddr + ')' }
+					this.CHOICES_NDI_SOURCES.push(ndiSourceObj)
 				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
+
+				if (this.CHOICES_NDI_SOURCES.length == 0) {
+					this.CHOICES_NDI_SOURCES.push({ id: -1, label: 'No NDI Sources loaded.' })
+				}
+
+				if (JSON.stringify(old_ndi_sources) !== JSON.stringify(this.CHOICES_NDI_SOURCES)) {
+					this.init_actions() //republish list of actions because of new NDI sources
+					this.init_feedbacks() //republish list of feedbacks because of new NDI sources
+				}
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
 	}
 
-	sendCommand(method, args) {
+	async get_channel() {
+		const cmd = `mwapi?method=get-channel`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			if (response.body && response.body.name) {
+				this.STATUS.channelConfig.currentChannel = response.body.name
+				if (response.body['ndi-name'] == true) {
+					this.STATUS.channelConfig.currentChannelNDI = true
+				} else {
+					this.STATUS.channelConfig.currentChannelNDI = false
+				}
+			}
+
+			this.checkVariables()
+			this.checkFeedbacks()
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async get_ndi_config() {
+		const cmd = `mwapi?method=get-ndi-config`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				this.STATUS.channelConfig.NDIEnableDiscovery = response.body['enable-discovery']
+				this.STATUS.channelConfig.NDIDiscoveryServer = response.body['discovery-server']
+				this.STATUS.channelConfig.NDISourceName = response.body['source-name']
+				this.STATUS.channelConfig.NDIGroupName = response.body['group-name']
+				this.STATUS.channelConfig.NDILowBandwidth = response.body['low-bandwidth']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async get_playback_config() {
+		const cmd = `mwapi?method=get-playback-config`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				this.STATUS.channelConfig.bufferDuration = response.body['buffer-duration']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async get_eth_status() {
+		const cmd = `mwapi?method=get-eth-status`
+		try {
+			const response = await got.get(cmd, this.got_options)
+			// Success
+			if (response.body) {
+				this.STATUS.networkConfig.useDHCP = response.body['use-dhcp']
+				this.STATUS.networkConfig.deviceName = response.body['device-name']
+				this.STATUS.networkConfig.state = response.body['state']
+				this.STATUS.networkConfig.mac = response.body['mac-addr']
+				this.STATUS.networkConfig.tx = response.body['tx-speed-kbps']
+				this.STATUS.networkConfig.rx = response.body['rx-speed-kbps']
+
+				this.checkVariables()
+				this.checkFeedbacks()
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
+	}
+
+	async sendCommand(method, args) {
 		if (args !== '') {
 			args = '&' + args
 		}
 
-		let cmd = `/mwapi?method=${method}${args}`
+		const cmd = `mwapi?method=${method}${args}`
 
 		if (this.config.verbose) {
 			this.log('debug', 'Sending: GET ' + cmd)
 		}
 
-		rest.getRest
-			.bind(this)(cmd, {})
-			.then(function (result) {
-				if (result.data && result.data.status) {
-					if (this.config.verbose) {
-						this.log('debug', 'Status Code Received: ' + statusCode)
-					}
-					this.processStatusCode(result.data.status)
+		try {
+			const response = await got.get(cmd, this.got_options)
+			if (response.body && response.body.status) {
+				if (this.config.verbose) {
+					this.log('debug', 'Status Code Received: ' + statusCode)
 				}
-			})
-			.catch(function (message) {
-				this.handleError(message)
-			})
+				this.processStatusCode(response.body.status)
+			}
+		} catch (err) {
+			this.handleError(err)
+		}
 	}
 
 	processStatusCode(statusCode) {
@@ -694,7 +672,7 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 
 	// Cleanup when the module gets deleted or disabled.
 	async destroy() {
-		this.stop_polling()
+		this.poll = false
 
 		clearInterval(this.login_timer)
 
@@ -735,4 +713,4 @@ class MagewellProConvertDecoderInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(MagewellProConvertDecoderInstance)
+runEntrypoint(MagewellProConvertDecoderInstance, [])
